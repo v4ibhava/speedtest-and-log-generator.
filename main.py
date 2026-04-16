@@ -1,8 +1,8 @@
 import streamlit as st
 import speedtest
 import plotly.graph_objects as go
-import time
 import pandas as pd
+import time
 
 if "log" not in st.session_state:
     st.session_state.log = []
@@ -32,41 +32,54 @@ def run_speed_test():
     st.session_state.log.append(result)
     return result
 
-def plot_gauge(value, title, max_value=200):
+def compact_gauge(value, title, max_value=200, color="green"):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=value,
-        title={'text': title},
+        title={'text': title, 'font': {'size': 14}},
         gauge={
-            'axis': {'range': [0, max_value]},
-            'bar': {'color': "green"},
+            'axis': {'range': [0, max_value], 'tickwidth': 1, 'tickcolor': "black"},
+            'bar': {'color': color},
+            'bgcolor': "white",
+            'borderwidth': 1,
+            'bordercolor': "gray",
             'steps': [
                 {'range': [0, max_value/2], 'color': "lightgray"},
-                {'range': [max_value/2, max_value], 'color': "gray"}
+                {'range': [max_value/2, max_value], 'color': "darkgray"}
             ],
-            'threshold': {'line': {'color': "red", 'width': 4}, 'value': max_value*0.9}
+            'threshold': {'line': {'color': "red", 'width': 3}, 'value': max_value*0.9}
         }
     ))
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
+    return fig
 
-st.title("🚀 Internet Speed Monitor with Analog Gauges")
+st.set_page_config(page_title="Speed Monitor", layout="wide")
+st.title("⚡ Compact Internet Speed Dashboard")
+
+col1, col2, col3 = st.columns(3)
 
 if st.button("Run One-Time Test"):
     result = run_speed_test()
-    st.write(result)
-    plot_gauge(result["Download (Mbps)"], "Download Speed (Mbps)", 200)
-    plot_gauge(result["Upload (Mbps)"], "Upload Speed (Mbps)", 100)
-    plot_gauge(result["Ping (ms)"], "Ping (ms)", 200)
+    with col1:
+        st.plotly_chart(compact_gauge(result["Download (Mbps)"], "Download", 200, "blue"), use_container_width=True)
+    with col2:
+        st.plotly_chart(compact_gauge(result["Upload (Mbps)"], "Upload", 100, "orange"), use_container_width=True)
+    with col3:
+        st.plotly_chart(compact_gauge(result["Ping (ms)"], "Ping", 200, "green"), use_container_width=True)
+    st.success(f"Server: {result['Server']} | Status: {result['Status']}")
 
 interval = st.number_input("Set interval (seconds)", min_value=5, step=5, value=10)
 if st.button("Start Interval Test"):
     stop = st.empty()
     while True:
         result = run_speed_test()
-        st.write(result)
-        plot_gauge(result["Download (Mbps)"], "Download Speed (Mbps)", 200)
-        plot_gauge(result["Upload (Mbps)"], "Upload Speed (Mbps)", 100)
-        plot_gauge(result["Ping (ms)"], "Ping (ms)", 200)
+        with col1:
+            st.plotly_chart(compact_gauge(result["Download (Mbps)"], "Download", 200, "blue"), use_container_width=True)
+        with col2:
+            st.plotly_chart(compact_gauge(result["Upload (Mbps)"], "Upload", 100, "orange"), use_container_width=True)
+        with col3:
+            st.plotly_chart(compact_gauge(result["Ping (ms)"], "Ping", 200, "green"), use_container_width=True)
+        st.info(f"Last Test: {result['Timestamp']} | Status: {result['Status']}")
         time.sleep(interval)
         if stop.button("Stop Interval Test"):
             break
